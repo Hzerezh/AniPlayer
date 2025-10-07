@@ -1,5 +1,13 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import VideoPlayerLayout from './components/VideoPlayerLayout.vue'
+import { usePlayerStore } from './stores/player'
+
+const store = usePlayerStore()
+
+onMounted(() => {
+  store.initialize()
+})
 </script>
 
 <template>
@@ -10,7 +18,7 @@ import VideoPlayerLayout from './components/VideoPlayerLayout.vue'
 
 <style scoped>
 .app {
-  min-height: 100vh;
+  height: 100vh;
   background: radial-gradient(circle at top, rgba(40, 40, 50, 0.9), #080808 55%);
   display: flex;
   align-items: stretch;

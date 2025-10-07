@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import PlaylistSidebar from './playlist/PlaylistSidebar.vue'
 import VideoControls from './player/VideoControls.vue'
+import ContextMenu from './player/ContextMenu.vue'
 
 const store = usePlayerStore()
 
@@ -76,7 +77,7 @@ watch(
         /* ignore autoplay restrictions */
       })
     }
-    store.justChangedTrack = false
+    store.setJustChangedTrack(false)
   },
   { immediate: true },
 )
@@ -152,6 +153,18 @@ const onHotkey = (event: KeyboardEvent) => {
     case 'm':
       event.preventDefault()
       store.toggleMute(videoElement.value)
+      break
+    case ',':
+      event.preventDefault()
+      if (videoElement.value) {
+        store.seekByFrame(videoElement.value, 'backward')
+      }
+      break
+    case '.':
+      event.preventDefault()
+      if (videoElement.value) {
+        store.seekByFrame(videoElement.value, 'forward')
+      }
       break
   }
 }
@@ -322,6 +335,7 @@ const toggles = computed(() => [{
       multiple
       @change="onFolderPicked"
     />
+    <ContextMenu :video="videoElement" />
   </div>
 </template>
 
