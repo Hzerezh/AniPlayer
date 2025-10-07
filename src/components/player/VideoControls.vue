@@ -28,8 +28,6 @@ const props = defineProps({
 
 const emit = defineEmits<{
   seek: [seconds: number]
-  'copy-frame': []
-  'open-containing-folder': []
   'update-volume': [value: number]
 }>()
 
@@ -65,18 +63,6 @@ const onProgressInput = (event: Event) => {
   const value = Number.parseFloat(target.value)
   props.store.seekToPercentage(props.video ?? null, value)
 }
-
-const onCopyFrame = () => emit('copy-frame')
-const onOpenContainingFolder = () => emit('open-containing-folder')
-
-watch(
-  () => props.store.contextMenu.visible,
-  (visible) => {
-    showContextMenu.value = visible
-  },
-)
-
-const contextPosition = computed(() => props.store.contextMenu.position)
 </script>
 
 <template>
@@ -90,60 +76,22 @@ const contextPosition = computed(() => props.store.contextMenu.position)
         :value="progress"
         @input="onProgressInput"
       />
-      <div class="time-info">
-        <span>{{ formattedCurrentTime }}</span>
-        <span>{{ formattedDuration }}</span>
-      </div>
     </div>
-
     <div class="seek-buttons">
-        <button type="button" @click="onSkip(-80)">
-        <i class="pi pi-angle-double-left"></i>
-        -1:20
-      </button>
-      <button type="button" @click="onSkip(-30)">
-        <i class="pi pi-angle-left"></i>
-        -30с
-      </button>
-      <button type="button" @click="onSkip(-10)">
-        <i class="pi pi-step-backward"></i>
-        -10с
-      </button>
-      <button type="button" @click="onSkip(-5)">
-        <i class="pi pi-caret-left"></i>
-        -5с
-      </button>
+      <button type="button" @click="onSkip(-80)">-1:20</button>
+      <button type="button" @click="onSkip(-30)">-30с</button>
+      <button type="button" @click="onSkip(-10)">-10с</button>
+      <button type="button" @click="onSkip(-5)">-5с</button>
       <button type="button" class="primary" @click="onTogglePlay">
         <i :class="props.store.isPlaying ? 'pi pi-pause' : 'pi pi-play'" />
       </button>
-      <button type="button" @click="onSkip(5)">
-        <i class="pi pi-caret-right"></i>
-        +5с
-      </button>
-      <button type="button" @click="onSkip(10)">
-        <i class="pi pi-step-forward"></i>
-        +10с
-      </button>
-      <button type="button" @click="onSkip(30)">
-        <i class="pi pi-angle-right"></i>
-        +30с
-      </button>
-      <button type="button" @click="onSkip(80)">
-        <i class="pi pi-angle-double-right"></i>
-        +1:20
-      </button>
+      <button type="button" @click="onSkip(5)">+5с</button>
+      <button type="button" @click="onSkip(10)">+10с</button>
+      <button type="button" @click="onSkip(30)">+30с</button>
+      <button type="button" @click="onSkip(80)">+1:20</button>
     </div>
-
     <div class="bottom">
       <div class="playback">
-        <button type="button" class="icon" @click="onMute">
-          <i :class="props.store.isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'" />
-        </button>
-        <VolumeSlider
-          :value="props.store.volume"
-          :muted="props.store.isMuted"
-          @update:value="onVolumeChange"
-        />
         <button
           type="button"
           class="icon"
@@ -160,47 +108,45 @@ const contextPosition = computed(() => props.store.contextMenu.position)
         >
           <i class="pi pi-skip-forward" />
         </button>
-
+        <div class="volume-control">
+          <button type="button" class="icon" @click="onMute">
+            <i :class="props.store.isMuted ? 'pi pi-volume-off' : 'pi pi-volume-up'" />
+          </button>
+          <VolumeSlider
+            :value="props.store.volume"
+            :muted="props.store.isMuted"
+            @update:value="onVolumeChange"
+          />
+        </div>
+        <div class="time-info">
+          <span>{{ formattedCurrentTime }}</span>
+          <span>/</span>
+          <span>{{ formattedDuration }}</span>
+        </div>
+      </div>
+      <div class="secondary">
         <select v-model.number="playbackRate">
           <option v-for="option in playbackRates" :key="option" :value="option">
             {{ option.toFixed(2) }}x
           </option>
         </select>
       </div>
-
-      <div class="secondary">
-        <button type="button" class="icon" @click="onCopyFrame">
-          <i class="pi pi-copy" />
-        </button>
-        <button type="button" class="icon" @click="onOpenContainingFolder">
-          <i class="pi pi-folder" />
-        </button>
-      </div>
     </div>
-
-    <Transition name="fade">
-      <ul
-        v-if="showContextMenu"
-        class="context-menu"
-        :style="{ top: `${contextPosition.y}px`, left: `${contextPosition.x}px` }"
-        @click="props.store.hideContextMenu()"
-      >
-        <li @click="onOpenContainingFolder">Открыть папку с файлом</li>
-        <li @click="onCopyFrame">Копировать кадр</li>
-      </ul>
-    </Transition>
   </section>
 </template>
 
 <style scoped>
 .controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
-  background: rgba(12, 17, 28, 0.85);
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 1rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  transition: opacity 0.3s ease;
 }
 
 .timeline {
@@ -212,11 +158,16 @@ const contextPosition = computed(() => props.store.contextMenu.position)
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
-  height: 6px;
+  height: 4px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #6366f1 0%, rgba(99, 102, 241, 0.1) 100%);
+  background: rgba(255, 255, 255, 0.3);
   outline: none;
   cursor: pointer;
+  transition: height 0.2s ease;
+}
+
+input[type='range']:hover {
+  height: 6px;
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -240,51 +191,37 @@ input[type='range']::-moz-range-thumb {
 .time-info {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  color: rgba(148, 163, 184, 0.95);
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  color: #f1f5f9;
 }
 
 .seek-buttons {
   display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .seek-buttons button {
-  padding: 0.65rem 0.4rem;
-  border-radius: 12px;
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  background: rgba(76, 29, 149, 0.35);
-  color: #e9d5ff;
-  font-size: 0.82rem;
-  letter-spacing: 0.01em;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  color: #f1f5f9;
+  padding: 0.5rem;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  transition: background-color 0.2s;
 }
 
 .seek-buttons button:hover {
-  border-color: rgba(129, 140, 248, 0.6);
-  background: rgba(79, 70, 229, 0.45);
-}
-
-.seek-buttons button:active {
-  transform: translateY(1px);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .seek-buttons button.primary {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(99, 102, 241, 0.95));
-  border-color: rgba(59, 130, 246, 0.7);
-  color: #f8fafc;
-  font-weight: 600;
-}
-
-.seek-buttons button.primary:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(99, 102, 241, 1));
+  background: rgba(255, 255, 255, 0.9);
+  color: #1e293b;
+  font-size: 1.2rem;
 }
 
 .bottom {
@@ -307,89 +244,81 @@ input[type='range']::-moz-range-thumb {
 }
 
 .icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: rgba(30, 27, 75, 0.65);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  color: rgba(191, 219, 254, 0.95);
+  background: transparent;
+  border: none;
+  color: #f1f5f9;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  transition: background-color 0.2s ease;
+}
+
+.icon:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .icon:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.icon:not(:disabled):hover {
-  transform: translateY(-1px);
-  background: rgba(30, 64, 175, 0.85);
+.primary {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  color: #1e293b;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.primary:hover {
+  transform: scale(1.05);
 }
 
 select {
-  background: rgba(17, 24, 39, 0.85);
-  border: 1px solid rgba(99, 102, 241, 0.45);
-  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
   padding: 0.35rem 0.75rem;
   color: #e0e7ff;
   font-weight: 500;
   cursor: pointer;
 }
 
-.context-menu {
-  position: absolute;
-  list-style: none;
-  margin: 0;
-  padding: 0.4rem 0;
-  background: rgba(15, 23, 42, 0.95);
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.55);
-  z-index: 40;
-  min-width: 220px;
+.volume-control {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.context-menu li {
-  padding: 0.65rem 1rem;
-  cursor: pointer;
-  color: rgba(226, 232, 240, 0.95);
+.volume-control .icon {
+  position: relative;
+  z-index: 1;
 }
 
-.context-menu li:hover {
-  background: rgba(59, 130, 246, 0.3);
+.volume-control:hover > :deep(.volume-slider) {
+  width: 120px;
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: all;
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
+:deep(.volume-slider) {
+  width: 0;
   opacity: 0;
-}
-
-@media (max-width: 768px) {
-  .seek-buttons {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .bottom {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-
-  .playback {
-    justify-content: space-between;
-  }
-
-  .secondary {
-    justify-content: flex-end;
-  }
+  transform: translateX(-20px);
+  pointer-events: none;
+  transition: width 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  margin-left: -20px;
+  padding-left: 20px;
 }
 </style>

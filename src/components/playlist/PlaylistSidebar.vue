@@ -15,15 +15,26 @@ const onSelect = (index: number) => {
 const onReorder = (payload: { from: number; to: number }) => {
   store.reorder(payload.from, payload.to)
 }
+
+const onRemove = (index: number) => {
+  store.removeAt(index)
+}
+
+const onClear = () => {
+  if (confirm('Вы уверены, что хотите очистить плейлист?')) {
+    store.clearPlaylist()
+  }
+}
 </script>
 
 <template>
   <aside class="sidebar">
-    <header>
-      <h2>AniPlayer 플레이лист</h2>
-      <p>
-        Добавляйте файлы кнопкой или per drag & drop.
-      </p>
+    <header class="sidebar-header">
+      <h2>Плейлист</h2>
+      <button type="button" class="clear-button" @click="onClear" :disabled="!playlist.length">
+        <i class="pi pi-trash" />
+        Очистить
+      </button>
     </header>
 
     <div class="playlist" v-if="playlist.length">
@@ -32,6 +43,7 @@ const onReorder = (payload: { from: number; to: number }) => {
         :active-index="currentIndex"
         @select="onSelect"
         @reorder="onReorder"
+        @remove="onRemove"
       />
     </div>
 
@@ -54,16 +66,40 @@ const onReorder = (payload: { from: number; to: number }) => {
   max-height: 100%;
 }
 
-header h2 {
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sidebar-header h2 {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
 }
 
-header p {
-  margin: 0.35rem 0 0;
-  color: rgba(148, 163, 184, 0.75);
-  font-size: 0.9rem;
+.clear-button {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #fecaca;
+  border-radius: 8px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.clear-button:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.7);
+}
+
+.clear-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .playlist {

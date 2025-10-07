@@ -1,5 +1,6 @@
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { defineStore } from 'pinia'
+import { savePlaylist, loadPlaylist } from './idb'
 
 const SUPPORTED_FORMATS = [
   'video/mp4',
@@ -55,6 +56,8 @@ export interface PlayerStore {
   playNext(): void
   playPrevious(): void
   reorder(from: number, to: number): void
+  removeAt(index: number): void
+  clearPlaylist(): void
   togglePlay(video?: HTMLVideoElement | null): void
   toggleMute(video?: HTMLVideoElement | null): void
   setPlaybackRate(rate: number, video?: HTMLVideoElement | null): void
@@ -114,6 +117,20 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
 
   const formattedDuration = computed(() => formatTime(state.duration))
   const formattedCurrentTime = computed(() => formatTime(state.currentTime))
+
+  watch(
+    () => state.medias,
+    (newMedias) => {
+      savePlaylist(newMedias)
+    },
+    { deep: true },
+  )
+
+  loadPlaylist().then((files) => {
+    if (files.length) {
+      void addFiles(files)
+    }
+  })
 
   const addFiles = async (files: File[]) => {
     const filtered = files.filter((file) => {
@@ -177,6 +194,33 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     } else if (from > state.currentIndex && to <= state.currentIndex) {
       state.currentIndex += 1
     }
+  }
+
+  const removeAt = (index: number) => {
+    if (index < 0 || index >= state.medias.length) return
+    state.medias.splice(index, 1)
+    if (index === state.currentIndex) {
+      if (state.medias.length === 0) {
+        state.currentIndex = -1
+        state.isPlaying = false
+        state.progress = 0
+        state.duration = 0
+        state.currentTime = 0
+      } else if (state.currentIndex >= state.medias.length) {
+        state.currentIndex = state.medias.length - 1
+      }
+    } else if (index < state.currentIndex) {
+      state.currentIndex--
+    }
+  }
+
+  const clearPlaylist = () => {
+    state.medias = []
+    state.currentIndex = -1
+    state.isPlaying = false
+    state.progress = 0
+    state.duration = 0
+    state.currentTime = 0
   }
 
   const togglePlay = (video?: HTMLVideoElement | null) => {
@@ -360,6 +404,8 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     playNext,
     playPrevious,
     reorder,
+    removeAt,
+    clearPlaylist,
     togglePlay,
     toggleMute,
     setPlaybackRate,

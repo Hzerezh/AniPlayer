@@ -23,35 +23,15 @@ const displayValue = computed({
 </script>
 
 <template>
-  <label class="volume">
-    <i
-      :class="[
-        'pi',
-        displayValue <= 0 || props.muted
-          ? 'pi-volume-off'
-          : displayValue < 50
-          ? 'pi-volume-down'
-          : 'pi-volume-up',
-      ]"
-    ></i>
+  <div class="volume-slider">
     <input v-model.number="displayValue" type="range" min="0" max="100" />
-  </label>
+  </div>
 </template>
 
 <style scoped>
-.volume {
+.volume-slider {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  background: rgba(17, 24, 39, 0.65);
-  border-radius: 999px;
-  padding: 0.35rem 0.6rem;
-  color: rgba(226, 232, 240, 0.95);
-  border: 1px solid rgba(99, 102, 241, 0.35);
-}
-
-.pi {
-  font-size: 1rem;
 }
 
 input[type='range'] {
@@ -60,7 +40,13 @@ input[type='range'] {
   appearance: none;
   height: 4px;
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(129, 140, 248, 0.9), rgba(56, 189, 248, 0.6));
+  background: rgba(255, 255, 255, 0.4);
+  outline: none;
+  transition: background 0.2s ease;
+}
+
+input[type='range']:hover {
+  background: rgba(255, 255, 255, 0.6);
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -70,6 +56,7 @@ input[type='range']::-webkit-slider-thumb {
   height: 14px;
   border-radius: 50%;
   background: #c4b5fd;
+  cursor: pointer;
 }
 
 input[type='range']::-moz-range-thumb {
@@ -77,5 +64,6 @@ input[type='range']::-moz-range-thumb {
   height: 14px;
   border-radius: 50%;
   background: #c4b5fd;
+  cursor: pointer;
 }
 </style>

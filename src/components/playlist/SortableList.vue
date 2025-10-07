@@ -16,6 +16,7 @@ const props = defineProps({
 const emit = defineEmits<{
   select: [index: number]
   reorder: [{ from: number; to: number }]
+  remove: [index: number]
 }>()
 
 const draggingIndex = ref<number | null>(null)
@@ -74,7 +75,17 @@ watch(
           <p class="subtitle">{{ item.details }}</p>
         </div>
       </div>
-      <i class="pi pi-grip-vertical"></i>
+      <div class="actions">
+        <button
+          type="button"
+          class="delete-button"
+          @click.stop="emit('remove', index)"
+          title="Удалить"
+        >
+          <i class="pi pi-times" />
+        </button>
+        <i class="pi pi-grip-vertical drag-handle"></i>
+      </div>
     </li>
   </ul>
 </template>
@@ -98,7 +109,7 @@ watch(
   border-radius: 14px;
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid transparent;
-  cursor: grab;
+  cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 }
 
@@ -157,7 +168,37 @@ watch(
   color: rgba(148, 163, 184, 0.8);
 }
 
-.pi {
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.delete-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.delete-button:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fecaca;
+}
+
+.drag-handle {
   color: rgba(148, 163, 184, 0.7);
+  cursor: grab;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 </style>
