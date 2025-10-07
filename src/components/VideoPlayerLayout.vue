@@ -233,7 +233,7 @@ const toggles = computed(() => [{
   >
     <section class="player-pane">
       <header class="player-header">
-        <h1>{{ formattedTitle }}</h1>
+        <h1>AniPlayer · {{ formattedTitle }}</h1>
         <div class="header-actions">
           <button type="button" class="ghost" @click="openFilePicker">
             <i class="pi pi-plus"></i>

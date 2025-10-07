@@ -1,7 +1,7 @@
 {
-  "name": "video-player",
+  "name": "aniplayer",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "pinia": "^2.3.0",
-    "primeicons": "^7.1.0",
-    "primevue": "^4.2.1",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.4.0",
     "vue": "^3.5.22"
   },
   "devDependencies": {

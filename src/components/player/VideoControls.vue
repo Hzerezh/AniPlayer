@@ -97,7 +97,7 @@ const contextPosition = computed(() => props.store.contextMenu.position)
     </div>
 
     <div class="seek-buttons">
-      <button type="button" @click="onSkip(-80)">
+        <button type="button" @click="onSkip(-80)">
         <i class="pi pi-angle-double-left"></i>
         -1:20
       </button>

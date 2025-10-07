@@ -20,7 +20,7 @@ const onReorder = (payload: { from: number; to: number }) => {
 <template>
   <aside class="sidebar">
     <header>
-      <h2>Плейлист</h2>
+      <h2>AniPlayer 플레이лист</h2>
       <p>
         Добавляйте файлы кнопкой или per drag & drop.
       </p>

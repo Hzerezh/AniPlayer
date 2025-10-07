@@ -1,6 +1,6 @@
 <template>
   <div class="hotkeys">
-    <div class="hint">↕️ Горячие клавиши</div>
+    <div class="hint">AniPlayer · горячие клавиши</div>
     <ul>
       <li><span>Space / K</span><strong>Старт / Пауза</strong></li>
       <li><span>J / L</span><strong>±10 сек</strong></li>

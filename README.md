@@ -1,5 +1,27 @@
-# Vue 3 + TypeScript + Vite
+# AniPlayer
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+AniPlayer — это оффлайн-видеоплеер в стиле YouTube, созданный специально для просмотра аниме-сериалов и фильмов.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Основные возможности
+- Поддержка всех популярных видеоформатов, включая HEVC (H.265).
+- Импорт отдельных файлов, перетаскивание и добавление целых папок.
+- Плейлист с сортировкой drag & drop, быстрыми кнопками перемотки и настройкой скорости от 0.25× до 3×.
+- Горячие клавиши (Space/K — пауза, J/L и стрелки — перемотка, M — звук).
+- Режим «Картинка в картинке», контекстное меню (копия кадра, открыть папку), переключатель автоперехода.
+- Тёмная тема, оптимизированная для ночного просмотра.
+
+## Быстрый старт
+```bash
+npm install
+npm run dev
+```
+
+### Сборка
+```bash
+npm run build
+```
+
+### Предпросмотр продакшн-сборки
+```bash
+npm run preview
+```
