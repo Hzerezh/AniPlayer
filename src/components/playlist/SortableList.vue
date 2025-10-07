@@ -15,40 +15,10 @@ const props = defineProps({
 
 const emit = defineEmits<{
   select: [index: number]
-  reorder: [{ from: number; to: number }]
   remove: [index: number]
+  'move-up': [index: number]
+  'move-down': [index: number]
 }>()
-
-const draggingIndex = ref<number | null>(null)
-const overIndex = ref<number | null>(null)
-
-const onDragStart = (index: number) => {
-  draggingIndex.value = index
-}
-
-const onDragEnter = (index: number) => {
-  overIndex.value = index
-}
-
-const onDragEnd = () => {
-  draggingIndex.value = null
-  overIndex.value = null
-}
-
-const onDrop = (index: number) => {
-  if (draggingIndex.value === null) return
-  emit('reorder', { from: draggingIndex.value, to: index })
-  draggingIndex.value = null
-  overIndex.value = null
-}
-
-watch(
-  () => props.items,
-  () => {
-    draggingIndex.value = null
-    overIndex.value = null
-  },
-)
 </script>
 
 <template>
@@ -58,16 +28,8 @@ watch(
       :key="item.id"
       class="item"
       :data-active="index === activeIndex"
-      :data-dragging="index === draggingIndex"
-      :data-over="index === overIndex"
-      draggable
       @click="emit('select', index)"
       @dblclick="emit('select', index)"
-      @dragstart="onDragStart(index)"
-      @dragenter.prevent="onDragEnter(index)"
-      @dragend="onDragEnd"
-      @dragover.prevent
-      @drop.prevent="onDrop(index)"
     >
       <div class="meta">
         <img :src="item.thumbnail" class="thumbnail" alt="Video thumbnail" />
@@ -77,6 +39,26 @@ watch(
         </div>
       </div>
       <div class="actions">
+        <div class="sort-buttons">
+          <button
+            type="button"
+            class="sort-button"
+            :disabled="index === 0"
+            @click.stop="emit('move-up', index)"
+            title="Move Up"
+          >
+            <i class="pi pi-arrow-up" />
+          </button>
+          <button
+            type="button"
+            class="sort-button"
+            :disabled="index === items.length - 1"
+            @click.stop="emit('move-down', index)"
+            title="Move Down"
+          >
+            <i class="pi pi-arrow-down" />
+          </button>
+        </div>
         <button
           type="button"
           class="delete-button"
@@ -85,7 +67,6 @@ watch(
         >
           <i class="pi pi-times" />
         </button>
-        <i class="pi pi-grip-vertical drag-handle"></i>
       </div>
     </li>
   </ul>
@@ -122,17 +103,8 @@ watch(
   box-shadow: 0 12px 22px rgba(99, 102, 241, 0.2);
 }
 
-.item[data-dragging='true'] {
-  opacity: 0.4;
-}
-
-.item[data-over='true'] {
-  border-style: dashed;
-  border-color: rgba(148, 163, 184, 0.6);
-}
-
 .item:active {
-  cursor: grabbing;
+  transform: scale(0.99);
 }
 
 .meta {
@@ -200,12 +172,33 @@ watch(
   color: #fecaca;
 }
 
-.drag-handle {
-  color: rgba(148, 163, 184, 0.7);
-  cursor: grab;
+.sort-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.drag-handle:active {
-  cursor: grabbing;
+.sort-button {
+  width: 28px;
+  height: 20px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.sort-button:hover:not(:disabled) {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+.sort-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 </style>

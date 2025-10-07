@@ -58,7 +58,8 @@ export interface PlayerStore {
   playAt(index: number): void
   playNext(): void
   playPrevious(): void
-  reorder(from: number, to: number): void
+  moveItemUp(index: number): void
+  moveItemDown(index: number): void
   removeAt(index: number): void
   clearPlaylist(): void
   togglePlay(video?: HTMLVideoElement | null): void
@@ -214,11 +215,9 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     if (additions.length) {
       state.medias.push(...additions)
       if (state.currentIndex === -1) {
-        void nextTick(() => {
-          state.currentIndex = 0
-          state.isPlaying = true
-          state.justChangedTrack = true
-        })
+        state.currentIndex = 0
+        state.isPlaying = true
+        state.justChangedTrack = true
       }
     }
   }
@@ -253,17 +252,31 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     }
   }
 
-  const reorder = (from: number, to: number) => {
-    if (from === to) return
+  const moveItemUp = (index: number) => {
+    if (index <= 0) return
+    const to = index - 1
+    const from = index
     const [item] = state.medias.splice(from, 1)
-    if (!item) return
     state.medias.splice(to, 0, item)
+
     if (state.currentIndex === from) {
       state.currentIndex = to
-    } else if (from < state.currentIndex && to >= state.currentIndex) {
-      state.currentIndex -= 1
-    } else if (from > state.currentIndex && to <= state.currentIndex) {
-      state.currentIndex += 1
+    } else if (state.currentIndex === to) {
+      state.currentIndex = from
+    }
+  }
+
+  const moveItemDown = (index: number) => {
+    if (index < 0 || index >= state.medias.length - 1) return
+    const to = index + 1
+    const from = index
+    const [item] = state.medias.splice(from, 1)
+    state.medias.splice(to, 0, item)
+
+    if (state.currentIndex === from) {
+      state.currentIndex = to
+    } else if (state.currentIndex === to) {
+      state.currentIndex = from
     }
   }
 
@@ -490,7 +503,8 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     playAt,
     playNext,
     playPrevious,
-    reorder,
+    moveItemUp,
+    moveItemDown,
     removeAt,
     clearPlaylist,
     togglePlay,

@@ -66,18 +66,23 @@ const onDragLeave = (event: DragEvent) => {
 }
 
 watch(
-  currentVideo,
-  (media) => {
+  () => store.currentMedia,
+  (newMedia) => {
     const video = videoElement.value
-    if (!video || !media) return
-    video.src = media.url
-    video.currentTime = 0
-    if (store.autoplay || store.justChangedTrack) {
-      void video.play().catch(() => {
-        /* ignore autoplay restrictions */
-      })
+    if (!video) return
+
+    if (newMedia) {
+      video.src = newMedia.url
+      video.load()
+      if (store.autoplay || store.justChangedTrack) {
+        void video.play().catch((e) => {
+          console.error('Autoplay was prevented.', e)
+        })
+      }
+      store.setJustChangedTrack(false)
+    } else {
+      video.src = ''
     }
-    store.setJustChangedTrack(false)
   },
   { immediate: true },
 )
@@ -154,13 +159,13 @@ const onHotkey = (event: KeyboardEvent) => {
       event.preventDefault()
       store.toggleMute(videoElement.value)
       break
-    case ',':
+    case '<':
       event.preventDefault()
       if (videoElement.value) {
         store.seekByFrame(videoElement.value, 'backward')
       }
       break
-    case '.':
+    case '>':
       event.preventDefault()
       if (videoElement.value) {
         store.seekByFrame(videoElement.value, 'forward')
@@ -192,13 +197,16 @@ const onContextMenu = (event: MouseEvent) => {
 }
 
 const showControls = ref(false)
+const isMouseOverControls = ref(false)
 let hideControlsTimeout: number | undefined
 
 const handleMouseMove = () => {
   showControls.value = true
   clearTimeout(hideControlsTimeout)
   hideControlsTimeout = setTimeout(() => {
-    showControls.value = false
+    if (!isMouseOverControls.value) {
+      showControls.value = false
+    }
   }, 3000)
 }
 
@@ -241,14 +249,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onHotkey)
 })
-
-const toggles = computed(() => [{
-  label: 'Автопереход',
-  model: computed({
-    get: () => store.autoAdvance,
-    set: (value: boolean) => store.setAutoAdvance(value),
-  }),
-}])
 </script>
 
 <template>
@@ -303,14 +303,9 @@ const toggles = computed(() => [{
           @copy-frame="onCopyFrame"
           @open-containing-folder="onOpenContainingFolder"
           @update-volume="onVolumeUpdate"
+          @mouseenter="isMouseOverControls = true"
+          @mouseleave="isMouseOverControls = false"
         />
-      </div>
-
-      <div class="toggles">
-        <label v-for="toggle in toggles" :key="toggle.label" class="toggle">
-          <span>{{ toggle.label }}</span>
-          <input type="checkbox" v-model="toggle.model.value" />
-        </label>
       </div>
     </section>
 
@@ -364,6 +359,7 @@ const toggles = computed(() => [{
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  min-height: 0;
 }
 
 .player-header {
@@ -419,37 +415,19 @@ const toggles = computed(() => [{
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  background: radial-gradient(ellipse at center, rgba(30, 30, 40, 0.85), rgba(8, 8, 12, 0.95));
+  background: #000;
   border: 1px solid rgba(148, 163, 184, 0.15);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .video-player {
   width: 100%;
+  height: 100%;
   display: block;
-  background: #000;
-  max-height: 520px;
-  aspect-ratio: 16 / 9;
-}
-
-.toggles {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 0.95rem;
-  padding: 0.45rem 0.75rem;
-  background: rgba(15, 23, 42, 0.7);
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-}
-
-.toggle input[type='checkbox'] {
-  accent-color: #6366f1;
-  transform: scale(1.1);
+  object-fit: contain;
 }
 
 @media (max-width: 1280px) {
