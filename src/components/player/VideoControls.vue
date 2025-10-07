@@ -80,13 +80,9 @@ const onProgressInput = (event: Event) => {
     <div class="seek-buttons">
       <button type="button" @click="onSkip(-80)">-1:20</button>
       <button type="button" @click="onSkip(-30)">-30с</button>
-      <button type="button" @click="onSkip(-10)">-10с</button>
-      <button type="button" @click="onSkip(-5)">-5с</button>
       <button type="button" class="primary" @click="onTogglePlay">
         <i :class="props.store.isPlaying ? 'pi pi-pause' : 'pi pi-play'" />
       </button>
-      <button type="button" @click="onSkip(5)">+5с</button>
-      <button type="button" @click="onSkip(10)">+10с</button>
       <button type="button" @click="onSkip(30)">+30с</button>
       <button type="button" @click="onSkip(80)">+1:20</button>
     </div>
@@ -198,7 +194,7 @@ input[type='range']::-moz-range-thumb {
 
 .seek-buttons {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 0.5rem;
   margin-bottom: 0.5rem;
 }

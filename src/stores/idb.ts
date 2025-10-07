@@ -1,32 +1,29 @@
 import { openDB, type DBSchema } from 'idb'
-import type { MediaItem } from './player'
 
 interface MyDB extends DBSchema {
   playlist: {
     key: string
-    value: { id: string; file: File }
+    value: File[]
   }
 }
 
-const dbPromise = openDB<MyDB>('aniplayer-db', 1, {
-  upgrade(db) {
-    db.createObjectStore('playlist', { keyPath: 'id' })
+const dbPromise = openDB<MyDB>('aniplayer-db', 2, {
+  upgrade(db, oldVersion) {
+    if (oldVersion < 2) {
+      if (db.objectStoreNames.contains('playlist')) {
+        db.deleteObjectStore('playlist')
+      }
+      db.createObjectStore('playlist')
+    }
   },
 })
 
-export async function savePlaylist(playlist: MediaItem[]) {
+export async function savePlaylist(files: File[]) {
   const db = await dbPromise
-  const tx = db.transaction('playlist', 'readwrite')
-  const store = tx.objectStore('playlist')
-  await store.clear()
-  for (const item of playlist) {
-    await store.add({ id: item.id, file: item.file })
-  }
-  await tx.done
+  await db.put('playlist', files, 'current-playlist')
 }
 
 export async function loadPlaylist(): Promise<File[]> {
   const db = await dbPromise
-  const items = await db.getAll('playlist')
-  return items.map((item) => item.file)
+  return (await db.get('playlist', 'current-playlist')) || []
 }

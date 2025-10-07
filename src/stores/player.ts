@@ -1,4 +1,4 @@
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, watch, nextTick } from 'vue'
 import { defineStore } from 'pinia'
 import { savePlaylist, loadPlaylist } from './idb'
 
@@ -27,6 +27,8 @@ export interface MediaItem {
   url: string
   displayName: string
   details: string
+  duration: string
+  thumbnail: string
 }
 
 export interface PlayerStore {
@@ -45,11 +47,12 @@ export interface PlayerStore {
   readonly playbackRate: number
   readonly autoplay: boolean
   readonly volume: number
-  justChangedTrack: boolean
+  readonly justChangedTrack: boolean
   readonly contextMenu: {
     visible: boolean
     position: { x: number; y: number }
   }
+  initialize(): Promise<void>
   addFiles(files: File[]): Promise<void>
   addFolder(files: File[]): Promise<void>
   playAt(index: number): void
@@ -63,12 +66,14 @@ export interface PlayerStore {
   setPlaybackRate(rate: number, video?: HTMLVideoElement | null): void
   updateProgress(currentTime: number, duration: number): void
   seek(video: HTMLVideoElement, seconds: number): void
+  seekByFrame(video: HTMLVideoElement, direction: 'forward' | 'backward'): void
   seekToPercentage(video: HTMLVideoElement | null, percentage: number): void
   setAutoAdvance(value: boolean): void
   setAutoplay(value: boolean): void
   setMuted(value: boolean): void
   setVolume(value: number, video?: HTMLVideoElement | null): void
   setPlaying(value: boolean): void
+  setJustChangedTrack(value: boolean): void
   updateCurrentIndex(index: number): void
   showContextMenu(event: MouseEvent): void
   hideContextMenu(): void
@@ -87,6 +92,46 @@ const formatTime = (seconds: number) => {
   return (hrs > 0 ? time : [mins.toString().padStart(2, '0'), secs.toString().padStart(2, '0')]).join(':')
 }
 
+const processVideoFile = (file: File): Promise<{ duration: string; thumbnail: string }> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.src = URL.createObjectURL(file)
+    video.muted = true
+
+    const cleanup = () => {
+      URL.revokeObjectURL(video.src)
+    }
+
+    video.onloadedmetadata = () => {
+      const duration = formatTime(video.duration)
+      video.currentTime = video.duration * 0.1
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          cleanup()
+          return reject(new Error('Could not get canvas context'))
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const thumbnail = canvas.toDataURL('image/jpeg')
+        cleanup()
+        resolve({ duration, thumbnail })
+      }
+      video.onerror = (e) => {
+        cleanup()
+        reject(new Error('Error seeking video file'))
+      }
+    }
+    video.onerror = (e) => {
+      cleanup()
+      reject(new Error('Error loading video metadata'))
+    }
+  })
+}
+
 export const usePlayerStore = defineStore('player', (): PlayerStore => {
   const state = reactive({
     medias: [] as MediaItem[],
@@ -100,6 +145,7 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     progress: 0,
     duration: 0,
     currentTime: 0,
+    justChangedTrack: false,
     contextMenu: {
       visible: false,
       position: { x: 0, y: 0 },
@@ -121,16 +167,11 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
   watch(
     () => state.medias,
     (newMedias) => {
-      savePlaylist(newMedias)
+      const files = newMedias.map((item) => item.file)
+      savePlaylist(files)
     },
     { deep: true },
   )
-
-  loadPlaylist().then((files) => {
-    if (files.length) {
-      void addFiles(files)
-    }
-  })
 
   const addFiles = async (files: File[]) => {
     const filtered = files.filter((file) => {
@@ -138,24 +179,54 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
       return SUPPORTED_FORMATS.some((type) => file.type === type)
     })
 
-    const additions = filtered.map((file): MediaItem => {
-      const displayName = file.name
-      const details = `${Math.round(file.size / (1024 * 1024))} МБ`
-      return {
-        id: `media-${uid++}`,
-        file,
-        url: URL.createObjectURL(file),
-        displayName,
-        details,
+    const additions: MediaItem[] = []
+    for (const file of filtered) {
+      try {
+        const { duration, thumbnail } = await processVideoFile(file)
+        const displayName = file.name
+        const details = `${Math.round(file.size / (1024 * 1024))} МБ`
+        additions.push({
+          id: `media-${uid++}`,
+          file,
+          url: URL.createObjectURL(file),
+          displayName,
+          details,
+          duration,
+          thumbnail,
+        })
+      } catch (error) {
+        console.error(`Failed to process video file: ${file.name}`, error)
+        // Add a fallback for files that can't be processed
+        const displayName = file.name
+        const details = `${Math.round(file.size / (1024 * 1024))} МБ`
+        additions.push({
+          id: `media-${uid++}`,
+          file,
+          url: URL.createObjectURL(file),
+          displayName,
+          details,
+          duration: 'N/A',
+          thumbnail: 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=', // 1x1 black pixel
+        })
       }
-    })
+    }
 
     if (additions.length) {
       state.medias.push(...additions)
       if (state.currentIndex === -1) {
-        state.currentIndex = 0
-        state.isPlaying = true
+        void nextTick(() => {
+          state.currentIndex = 0
+          state.isPlaying = true
+          state.justChangedTrack = true
+        })
       }
+    }
+  }
+
+  const initialize = async () => {
+    const files = await loadPlaylist()
+    if (files.length) {
+      await addFiles(files)
     }
   }
 
@@ -167,7 +238,7 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     if (index < 0 || index >= state.medias.length) return
     state.currentIndex = index
     state.isPlaying = true
-    store.justChangedTrack = true
+    state.justChangedTrack = true
   }
 
   const playNext = () => {
@@ -267,6 +338,15 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     updateProgress(target, video.duration)
   }
 
+  const seekByFrame = (video: HTMLVideoElement, direction: 'forward' | 'backward') => {
+    // Assuming a standard frame rate of 30fps for frame-by-frame seeking.
+    const frameDuration = 1 / 30
+    const modifier = direction === 'forward' ? 1 : -1
+    const newTime = video.currentTime + frameDuration * modifier
+    video.currentTime = Math.min(Math.max(newTime, 0), video.duration || 0)
+    updateProgress(video.currentTime, video.duration)
+  }
+
   const seekToPercentage = (video: HTMLVideoElement | null, percentage: number) => {
     if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return
     const target = (percentage / 100) * video.duration
@@ -300,6 +380,10 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
 
   const setPlaying = (value: boolean) => {
     state.isPlaying = value
+  }
+
+  const setJustChangedTrack = (value: boolean) => {
+    state.justChangedTrack = value
   }
 
   const updateCurrentIndex = (index: number) => {
@@ -348,7 +432,7 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     URL.revokeObjectURL(url)
   }
 
-  const store: PlayerStore = {
+  return {
     get medias() {
       return state.medias
     },
@@ -394,10 +478,13 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     get volume() {
       return state.volume
     },
-    justChangedTrack: false,
-    get contextMenu() {
-      return contextMenu
+    get justChangedTrack() {
+      return state.justChangedTrack
     },
+    get contextMenu() {
+      return state.contextMenu
+    },
+    initialize,
     addFiles,
     addFolder,
     playAt,
@@ -411,18 +498,18 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     setPlaybackRate,
     updateProgress,
     seek,
+    seekByFrame,
     seekToPercentage,
     setAutoAdvance,
     setAutoplay,
     setMuted,
     setVolume,
     setPlaying,
+    setJustChangedTrack,
     updateCurrentIndex,
     showContextMenu,
     hideContextMenu,
     copyFrame,
     openContainingFolder,
   }
-
-  return store
 })

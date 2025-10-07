@@ -62,6 +62,7 @@ watch(
       :data-over="index === overIndex"
       draggable
       @click="emit('select', index)"
+      @dblclick="emit('select', index)"
       @dragstart="onDragStart(index)"
       @dragenter.prevent="onDragEnter(index)"
       @dragend="onDragEnd"
@@ -69,10 +70,10 @@ watch(
       @drop.prevent="onDrop(index)"
     >
       <div class="meta">
-        <span class="order">{{ index + 1 }}</span>
+        <img :src="item.thumbnail" class="thumbnail" alt="Video thumbnail" />
         <div class="info">
           <p class="title">{{ item.displayName }}</p>
-          <p class="subtitle">{{ item.details }}</p>
+          <p class="subtitle">{{ item.duration }} · {{ item.details }}</p>
         </div>
       </div>
       <div class="actions">
@@ -114,8 +115,10 @@ watch(
 }
 
 .item[data-active='true'] {
-  border-color: rgba(99, 102, 241, 0.75);
-  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(129, 140, 248, 1);
+  background: rgba(99, 102, 241, 0.5);
+  border-width: 2px;
+  padding: calc(0.65rem - 1px);
   box-shadow: 0 12px 22px rgba(99, 102, 241, 0.2);
 }
 
@@ -136,23 +139,24 @@ watch(
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
 }
 
-.order {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: rgba(79, 70, 229, 0.5);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
+.thumbnail {
+  width: 64px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 8px;
+  background-color: #000;
+  flex-shrink: 0;
 }
 
 .info {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .title {
@@ -160,6 +164,9 @@ watch(
   font-size: 0.95rem;
   font-weight: 600;
   color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .subtitle {
