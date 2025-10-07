@@ -3,7 +3,6 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { usePlayerStore } from '../stores/player'
 import PlaylistSidebar from './playlist/PlaylistSidebar.vue'
 import VideoControls from './player/VideoControls.vue'
-import HotkeysHelp from './player/HotkeysHelp.vue'
 
 const store = usePlayerStore()
 
@@ -179,6 +178,22 @@ const onContextMenu = (event: MouseEvent) => {
   store.showContextMenu(event)
 }
 
+const showControls = ref(false)
+let hideControlsTimeout: number | undefined
+
+const handleMouseMove = () => {
+  showControls.value = true
+  clearTimeout(hideControlsTimeout)
+  hideControlsTimeout = setTimeout(() => {
+    showControls.value = false
+  }, 3000)
+}
+
+const handleMouseLeave = () => {
+  clearTimeout(hideControlsTimeout)
+  showControls.value = false
+}
+
 const onCopyFrame = async () => {
   if (!videoElement.value) return
   await store.copyFrame(videoElement.value)
@@ -250,30 +265,33 @@ const toggles = computed(() => [{
         </div>
       </header>
 
-      <div class="video-wrapper" @contextmenu="onContextMenu">
+      <div
+        class="video-wrapper"
+        @contextmenu="onContextMenu"
+        @mousemove="handleMouseMove"
+        @mouseleave="handleMouseLeave"
+      >
         <video
           ref="videoElement"
           class="video-player"
-          controls
           crossorigin="anonymous"
           @timeupdate="onTimeUpdate"
           @loadedmetadata="onLoadedMetadata"
           @ended="onVideoEnded"
         ></video>
-        <HotkeysHelp />
+        <VideoControls
+          v-show="showControls"
+          :store="store"
+          :video="videoElement"
+          :playbackRates="playbackRateOptions"
+          :can-skip-forward="canSkipForward"
+          :can-skip-backward="canSkipBackward"
+          @seek="applySeek"
+          @copy-frame="onCopyFrame"
+          @open-containing-folder="onOpenContainingFolder"
+          @update-volume="onVolumeUpdate"
+        />
       </div>
-
-      <VideoControls
-        :store="store"
-        :video="videoElement"
-        :playbackRates="playbackRateOptions"
-        :can-skip-forward="canSkipForward"
-        :can-skip-backward="canSkipBackward"
-        @seek="applySeek"
-        @copy-frame="onCopyFrame"
-        @open-containing-folder="onOpenContainingFolder"
-        @update-volume="onVolumeUpdate"
-      />
 
       <div class="toggles">
         <label v-for="toggle in toggles" :key="toggle.label" class="toggle">
@@ -310,9 +328,10 @@ const toggles = computed(() => [{
 <style scoped>
 .player-layout {
   display: grid;
-  grid-template-columns: minmax(0, 900px) 320px;
+  grid-template-columns: 1fr 380px;
   gap: 1.5rem;
-  width: min(1200px, 100%);
+  width: 100%;
+  height: 100%;
   border-radius: 18px;
   background: linear-gradient(145deg, rgba(25, 25, 35, 0.95), rgba(12, 12, 18, 0.98));
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
