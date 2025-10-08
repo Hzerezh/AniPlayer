@@ -12,12 +12,16 @@ const onSelect = (index: number) => {
   store.playAt(index)
 }
 
-const onReorder = (payload: { from: number; to: number }) => {
-  store.reorder(payload.from, payload.to)
-}
-
 const onRemove = (index: number) => {
   store.removeAt(index)
+}
+
+const onMoveUp = (index: number) => {
+  store.moveItemUp(index)
+}
+
+const onMoveDown = (index: number) => {
+  store.moveItemDown(index)
 }
 
 const onClear = () => {
@@ -42,8 +46,9 @@ const onClear = () => {
         :items="playlist"
         :active-index="currentIndex"
         @select="onSelect"
-        @reorder="onReorder"
         @remove="onRemove"
+        @move-up="onMoveUp"
+        @move-down="onMoveDown"
       />
     </div>
 
