@@ -153,7 +153,7 @@ const onProgressInput = (event: Event) => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 0.75rem 1.5rem;
+  padding: 1.5rem 1.5rem 0.75rem;
   background: rgba(20, 20, 30, 0.6);
   backdrop-filter: blur(12px);
   border-radius: 16px;
