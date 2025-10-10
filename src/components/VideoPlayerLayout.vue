@@ -11,6 +11,7 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const folderInput = ref<HTMLInputElement | null>(null)
 const videoElement = ref<HTMLVideoElement | null>(null)
 const container = ref<HTMLDivElement | null>(null)
+const urlInput = ref('')
 
 const currentVideo = computed(() => store.currentMedia)
 
@@ -30,6 +31,12 @@ const handleFiles = async (files: FileList | File[]) => {
 
 const handleFolder = async (files: FileList | File[]) => {
   await store.addFolder(Array.from(files))
+}
+
+const handleAddUrl = () => {
+  if (!urlInput.value) return
+  store.addUrl(urlInput.value)
+  urlInput.value = ''
 }
 
 const onDrop = async (event: DragEvent) => {
@@ -220,10 +227,6 @@ const onCopyFrame = async () => {
   await store.copyFrame(videoElement.value)
 }
 
-const onOpenContainingFolder = () => {
-  store.openContainingFolder()
-}
-
 const onVolumeUpdate = (value: number) => {
   store.setVolume(value, videoElement.value)
 }
@@ -263,6 +266,19 @@ onBeforeUnmount(() => {
       <header class="player-header">
         <h1>AniPlayer · {{ formattedTitle }}</h1>
         <div class="header-actions">
+          <div class="url-input-group">
+            <input
+              v-model="urlInput"
+              type="text"
+              class="url-input"
+              placeholder="Вставьте ссылку на видео..."
+              @keyup.enter="handleAddUrl"
+            />
+            <button type="button" class="ghost" @click="handleAddUrl">
+              <i class="pi pi-plus"></i>
+              Добавить
+            </button>
+          </div>
           <button type="button" class="ghost" @click="openFilePicker">
             <i class="pi pi-plus"></i>
             Добавить файлы
@@ -301,7 +317,6 @@ onBeforeUnmount(() => {
           :can-skip-backward="canSkipBackward"
           @seek="applySeek"
           @copy-frame="onCopyFrame"
-          @open-containing-folder="onOpenContainingFolder"
           @update-volume="onVolumeUpdate"
           @mouseenter="isMouseOverControls = true"
           @mouseleave="isMouseOverControls = false"
@@ -379,7 +394,36 @@ onBeforeUnmount(() => {
 
 .header-actions {
   display: flex;
+  align-items: center;
   gap: 0.75rem;
+}
+
+.url-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.url-input {
+  background: rgba(30, 30, 40, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 0.55rem 0.85rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  width: 280px;
+  transition: all 0.2s ease;
+}
+
+.url-input::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: rgba(129, 140, 248, 0.7);
+  background: rgba(35, 35, 50, 0.8);
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.2);
 }
 
 .ghost {
