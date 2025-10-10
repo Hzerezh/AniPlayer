@@ -23,8 +23,10 @@ let uid = 0
 
 export interface MediaItem {
   id: string
-  file: File
+  source: 'file' | 'url'
+  file?: File
   url: string
+  originalUrl?: string
   displayName: string
   details: string
   duration: string
@@ -55,6 +57,7 @@ export interface PlayerStore {
   initialize(): Promise<void>
   addFiles(files: File[]): Promise<void>
   addFolder(files: File[]): Promise<void>
+  addUrl(url: string): Promise<void>
   playAt(index: number): void
   playNext(): void
   playPrevious(): void
@@ -79,7 +82,7 @@ export interface PlayerStore {
   showContextMenu(event: MouseEvent): void
   hideContextMenu(): void
   copyFrame(video: HTMLVideoElement): Promise<void>
-  openContainingFolder(): void
+  downloadCurrentMedia(): Promise<void>
 }
 
 const formatTime = (seconds: number) => {
@@ -133,6 +136,55 @@ const processVideoFile = (file: File): Promise<{ duration: string; thumbnail: st
   })
 }
 
+const processVideoUrl = (
+  url: string,
+): Promise<{ duration: string; thumbnail: string; displayName: string; details: string }> => {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    video.src = url
+    video.crossOrigin = 'anonymous'
+    video.muted = true
+
+    const cleanup = () => {}
+
+    video.onloadedmetadata = () => {
+      const duration = formatTime(video.duration)
+      const displayName = url.substring(url.lastIndexOf('/') + 1).split('?')[0] || 'Video from URL'
+      const details = 'URL'
+
+      video.currentTime = video.duration > 1 ? 1 : video.duration * 0.1
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          cleanup()
+          return reject(new Error('Could not get canvas context'))
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const thumbnail = canvas.toDataURL('image/jpeg')
+        cleanup()
+        resolve({ duration, thumbnail, displayName, details })
+      }
+      video.onerror = () => {
+        cleanup()
+        resolve({
+          duration,
+          thumbnail: 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=',
+          displayName,
+          details,
+        })
+      }
+    }
+    video.onerror = () => {
+      cleanup()
+      reject(new Error('Error loading video metadata from URL'))
+    }
+  })
+}
+
 export const usePlayerStore = defineStore('player', (): PlayerStore => {
   const state = reactive({
     medias: [] as MediaItem[],
@@ -168,8 +220,16 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
   watch(
     () => state.medias,
     (newMedias) => {
-      const files = newMedias.map((item) => item.file)
-      savePlaylist(files)
+      const storedMedias = newMedias.map((item) => {
+        if (item.source === 'file' && item.file) {
+          return { source: 'file', file: item.file }
+        }
+        if (item.source === 'url' && item.originalUrl) {
+          return { source: 'url', url: item.originalUrl }
+        }
+        return null
+      }).filter(Boolean) as any[]
+      savePlaylist(storedMedias)
     },
     { deep: true },
   )
@@ -188,6 +248,7 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
         const details = `${Math.round(file.size / (1024 * 1024))} МБ`
         additions.push({
           id: `media-${uid++}`,
+          source: 'file',
           file,
           url: URL.createObjectURL(file),
           displayName,
@@ -202,6 +263,7 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
         const details = `${Math.round(file.size / (1024 * 1024))} МБ`
         additions.push({
           id: `media-${uid++}`,
+          source: 'file',
           file,
           url: URL.createObjectURL(file),
           displayName,
@@ -223,14 +285,55 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
   }
 
   const initialize = async () => {
-    const files = await loadPlaylist()
+    const storedMedias = await loadPlaylist()
+    if (!storedMedias.length) return
+
+    const files: File[] = []
+    const urls: string[] = []
+
+    for (const item of storedMedias) {
+      if (item.source === 'file') {
+        files.push(item.file)
+      } else if (item.source === 'url') {
+        urls.push(item.url)
+      }
+    }
+
     if (files.length) {
       await addFiles(files)
+    }
+
+    for (const url of urls) {
+      await addUrl(url)
     }
   }
 
   const addFolder = async (files: File[]) => {
     await addFiles(files)
+  }
+
+  const addUrl = async (url: string) => {
+    try {
+      const { duration, thumbnail, displayName, details } = await processVideoUrl(url)
+      const newMedia: MediaItem = {
+        id: `media-${uid++}`,
+        source: 'url',
+        url: url,
+        originalUrl: url,
+        displayName,
+        details,
+        duration,
+        thumbnail,
+      }
+      state.medias.push(newMedia)
+      if (state.currentIndex === -1) {
+        state.currentIndex = 0
+        state.isPlaying = true
+        state.justChangedTrack = true
+      }
+    } catch (error) {
+      console.error(`Failed to process video from URL: ${url}`, error)
+    }
   }
 
   const playAt = (index: number) => {
@@ -435,14 +538,35 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     }
   }
 
-  const openContainingFolder = () => {
+  const downloadCurrentMedia = async () => {
     if (!currentMedia.value) return
-    const url = URL.createObjectURL(currentMedia.value.file)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = currentMedia.value.file.name
-    anchor.click()
-    URL.revokeObjectURL(url)
+
+    const item = currentMedia.value
+    if (item.source === 'file' && item.file) {
+      const url = URL.createObjectURL(item.file)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = item.file.name
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } else if (item.source === 'url' && item.originalUrl) {
+      try {
+        const response = await fetch(item.originalUrl)
+        if (!response.ok) throw new Error('Network response was not ok.')
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = item.displayName || 'downloaded-video'
+        document.body.appendChild(anchor)
+        anchor.click()
+        document.body.removeChild(anchor)
+        window.URL.revokeObjectURL(url)
+      } catch (error) {
+        console.error('Failed to download video from URL, opening in new tab as fallback:', error)
+        window.open(item.originalUrl, '_blank')
+      }
+    }
   }
 
   return {
@@ -500,6 +624,7 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     initialize,
     addFiles,
     addFolder,
+    addUrl,
     playAt,
     playNext,
     playPrevious,
@@ -524,6 +649,6 @@ export const usePlayerStore = defineStore('player', (): PlayerStore => {
     showContextMenu,
     hideContextMenu,
     copyFrame,
-    openContainingFolder,
+    downloadCurrentMedia,
   }
 })
