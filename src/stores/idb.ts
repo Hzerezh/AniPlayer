@@ -1,19 +1,9 @@
 import { openDB, type DBSchema } from 'idb'
 
-export type StoredMedia =
-  | {
-      source: 'file'
-      file: File
-    }
-  | {
-      source: 'url'
-      url: string
-    }
-
 interface MyDB extends DBSchema {
   playlist: {
     key: string
-    value: StoredMedia[]
+    value: File[]
   }
 }
 
@@ -28,12 +18,12 @@ const dbPromise = openDB<MyDB>('aniplayer-db', 2, {
   },
 })
 
-export async function savePlaylist(items: StoredMedia[]) {
+export async function savePlaylist(files: File[]) {
   const db = await dbPromise
-  await db.put('playlist', items, 'current-playlist')
+  await db.put('playlist', files, 'current-playlist')
 }
 
-export async function loadPlaylist(): Promise<StoredMedia[]> {
+export async function loadPlaylist(): Promise<File[]> {
   const db = await dbPromise
   return (await db.get('playlist', 'current-playlist')) || []
 }

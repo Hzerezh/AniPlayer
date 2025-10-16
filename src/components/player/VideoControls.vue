@@ -128,15 +128,6 @@ const onProgressInput = (event: Event) => {
         </button>
       </div>
       <div class="group right">
-        <button
-          v-if="props.store.currentMedia"
-          type="button"
-          class="icon"
-          title="Скачать видео"
-          @click="props.store.downloadCurrentMedia()"
-        >
-          <i class="pi pi-download" />
-        </button>
         <label class="toggle">
           <input type="checkbox" v-model="autoAdvance" />
           <span>Автопереход</span>
