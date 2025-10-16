@@ -1,0 +1,55 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "AniPlayer",
+  "version": "1.0.0",
+  "identifier": "com.aniplayer.desktop",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5200",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "AniPlayer",
+        "width": 1800,
+        "height": 1000,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "assetProtocol": {
+      "enable": true,
+      "scope": [
+        "$APPDATA/**",
+        "$RESOURCE/**"
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "fs-watch": {
+      "watch": ["**"]
+    },
+    "fs": {
+      "scope": ["$DOWNLOAD/**", "$HOME/**"]
+    },
+    "http": {
+      "scope": ["https://**/*"]
+    }
+  }
+}
